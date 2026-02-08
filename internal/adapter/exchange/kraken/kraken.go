@@ -86,16 +86,6 @@ func (b *Kraken) GetOrderBook(ctx context.Context, symbols []string) (*domain.Or
 	return output, nil
 }
 
-type KrakenOrderBookDTO struct {
-	Error  []any                      `json:"error"`
-	Result map[string]KrakenMarketDTO `json:"result"`
-}
-
-type KrakenMarketDTO struct {
-	Asks [][2]string `json:"asks"`
-	Bids [][2]string `json:"bids"`
-}
-
 func (b *Kraken) getTopOfBook(ctx context.Context, symbol string) (output *domain.TopOfBook, err error) {
 	url, err := url.Parse(b.cfg.APIConfig.KrakenOrderBookUrl)
 	if err != nil {
@@ -122,12 +112,19 @@ func (b *Kraken) getTopOfBook(ctx context.Context, symbol string) (output *domai
 		return output, fmt.Errorf("orderbook failed for %s code %d", symbol, response.StatusCode)
 	}
 
-	orderBookResponse := new(KrakenOrderBookDTO)
+	orderBookResponse := new(KrakenOrderBook)
 	if err := json.NewDecoder(response.Body).Decode(orderBookResponse); err != nil {
 		return output, err
 	}
 
+	if len(orderBookResponse.Result) == 0 {
+		return output, fmt.Errorf("Pair not found for : %s", symbol)
+	}
+
 	output, err = orderBookResponse.ToDomain()
+	if err != nil {
+		return nil, err
+	}
 
 	return output, nil
 }

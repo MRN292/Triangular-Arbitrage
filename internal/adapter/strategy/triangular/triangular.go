@@ -1,7 +1,6 @@
 package triangular
 
 import (
-	"context"
 	"fmt"
 	"time"
 	"triangular-arbitrage/internal/domain"
@@ -29,8 +28,7 @@ func (t *Triangular) Name() string {
 	return "triangular"
 }
 
-func (t *Triangular) FindArbitrageOpportunities(ctx context.Context, exchange port.Exchange, orderBooks *domain.OrderBooks) (*domain.ArbitrageOpportunity, error) {
-	_ = ctx
+func (t *Triangular) FindArbitrageOpportunities(exchange port.Exchange, orderBooks *domain.OrderBooks) (*domain.ArbitrageOpportunity, error) {
 
 	ob1, ok1 := orderBooks.Markets[t.Pair1]
 	ob2, ok2 := orderBooks.Markets[t.Pair2]

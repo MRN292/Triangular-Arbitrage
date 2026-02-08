@@ -5,7 +5,7 @@ import (
 	"triangular-arbitrage/internal/domain"
 )
 
-func (dto KrakenOrderBookDTO) ToDomain() (output *domain.TopOfBook,err error) {
+func (dto KrakenOrderBook) ToDomain() (output *domain.TopOfBook,err error) {
 	
 	for _, MarketBook := range dto.Result {
 

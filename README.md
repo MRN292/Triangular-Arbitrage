@@ -37,53 +37,50 @@ domain, including market structures, order books, and triangular arbitrage.
 
 # Implementation
 
-## Folder Structure
+## Folder Structure (high level)
 
 ```
 cmd/
-    main.go              # Application entry point
-arbitrage/
-    types.go             # Data structures (Exchange, Market, Order, ArbitrageOpportunity)
-    triangular.go        # Arbitrage calculation logic
-    loader.go            # JSON data loader (simulates API calls)
-    worker.go            # Concurrent worker pool
+    main.go                  # Entry point: wires config + exchange adapters + runs the app
+config/
+    config.go                # App configuration
+    apiconfig.go             # Exchange/API configuration
 helper/
-    input.go             # User input handling
-    print.go             # Result formatting
-exchanges/
-    binance.json         # Mock order book data
+    input.go                 # CLI input helpers
+    print.go                 # Console output helpers
+internal/
+    app/                     # Use-cases / orchestration (runs the arbitrage flow)
+    domain/                  # Core domain logic (opportunity calculation, models)
+    adapter/                 # Exchange implementations (e.g., Kraken)
+    port/                    # Interfaces (abstractions for adapters)
+    registry/                # Wiring/registration of dependencies
+    types/                   # Shared types used across layers
 ```
 
-## Key Functions
+## Important parts (what to look at)
 
-**`FindArbitrageOpportunities()`** (arbitrage/worker.go)
-- Entry point that orchestrates concurrent exchange processing
-- Creates worker pool (30% of exchanges, min 1) and distributes work via channels
-- Uses `context.Context` for 5-second timeout and cancellation
-- Collects results from all workers using `sync.WaitGroup`
+- **`cmd/main.go`**  
+  Prints each found opportunity, and shows key fields like `Exchange`, `Path`, `EndAmount`, `Profit`, and `ProfitPercent`.
 
-**`calculateTriangularArbitrage()`** (arbitrage/triangular.go)
-- Executes the three-step arbitrage calculation:
-  1. StartAmount / Pair1.AskPrice = Amount1
-  2. Amount1 / Pair2.AskPrice = Amount2
-  3. Amount2 * Pair3.BidPrice = FinalAmount
-- Validates liquidity at each step (checks if order amount ≥ required amount)
-- Returns opportunity if profit exceeds minimum threshold
+- **`internal/app`**  
+  The application layer that coordinates the run: reading inputs/config, calling the exchange adapter(s), and executing the arbitrage detection.
 
-**`GetOrderBook()`** (arbitrage/loader.go)
-- Loads order book data from JSON files (simulates API calls)
-- Parses market data including bids/asks for each trading pair
+- **`internal/domain`**  
+  The core triangular-arbitrage logic: given market prices/order book data, compute the end amount and profit for a 3-leg path.
+
+- **`internal/adapter/exchange/*`**  
+  Concrete exchange integrations (e.g. Kraken). This is where request/response mapping and exchange-specific behavior lives.
 
 ## Usage
 
+1) Create your local environment file:
+
 ```
-go run cmd/main.go
+cp .env.example .env
 ```
 
-**Example:**
+2) Run:
+
 ```
-Enter exchanges: binance
-Enter 3 pairs: BTC/USDT,ETH/BTC,ETH/USDT
-Enter start amount: 1000
-Enter minimum profit %: 0.5
+go run cmd/main.go
 ```
