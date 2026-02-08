@@ -3,10 +3,10 @@ package helper
 import (
 	"fmt"
 	"strings"
-	"triangular-arbitrage/arbitrage"
+	"triangular-arbitrage/internal/domain"
 )
 
-func PrettyPrint(results []*arbitrage.ArbitrageOpportunity) {
+func PrettyPrint(results []*domain.ArbitrageOpportunity) {
 	if len(results) == 0 {
 		fmt.Println("No arbitrage opportunities found.")
 		return

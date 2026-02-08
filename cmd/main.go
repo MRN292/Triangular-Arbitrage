@@ -4,51 +4,53 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
-	"triangular-arbitrage/arbitrage"
+	"triangular-arbitrage/config"
 	"triangular-arbitrage/helper"
+	"triangular-arbitrage/internal/adapter/exchange/kraken"
+	"triangular-arbitrage/internal/adapter/strategy/triangular"
+	"triangular-arbitrage/internal/registry"
 )
 
 func main() {
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Fatalf("Error in loading configs %v", err)
+	}
 
 	userInputs, err := helper.GetInputs()
 	if err != nil {
-		log.Println(err)
-		return
+		log.Fatal(err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	// defer cancel()
+	ctx := context.Background()
 
-	// Channel for saving outputs
-	resultCh := make(chan *arbitrage.ArbitrageOpportunity, len(userInputs.ExchangesPaths))
+	kraken := kraken.NewKraken(cfg)
 
-	// Create and start worker pool
-	workerPool := arbitrage.NewTriangularArbitrageWorker(
-		ctx,
-		userInputs.ExchangesPaths,
-		userInputs.Pairs,
-		userInputs.StartAmount,
-		userInputs.MinProfit,
-		resultCh,
-	)
-	workerPool.Start()
-
-	go func() {
-		workerPool.Wait()
-		close(resultCh)
-	}()
-
-	// Collect results
-	var results []*arbitrage.ArbitrageOpportunity
-	for res := range resultCh {
-		results = append(results, res)
+	exRegistry := registry.NewExchangeRegistry(kraken)
+	ex, ok := exRegistry.Get("kraken")
+	if !ok {
+		log.Printf("exhange not found : %s", "kraken")
+	}
+	if err := ex.Ping(ctx); err != nil {
+		log.Printf("Error in connection %v", err)
 	}
 
-	if len(results) == 0 {
-		fmt.Println("No arbitrage opportunity found in any exchange")
-		return
+	tri := triangular.NewTriangular(userInputs.Pairs[0], userInputs.Pairs[1], userInputs.Pairs[2], userInputs.StartAmount, userInputs.MinProfit)
+	strgReg := registry.NewStrategyRegistry(tri)
+	st, ok := strgReg.Get("triangular")
+	if !ok {
+		log.Printf("Strategy not found : %s", "trangular")
 	}
 
-	helper.PrettyPrint(results)
+	orderBooks, err := ex.GetOrderBook(ctx, userInputs.Pairs)
+
+	opp, err := st.FindArbitrageOpportunities(ctx, ex, orderBooks)
+	if err != nil {
+		log.Printf("strategy error: %v", err)
+	}
+
+	fmt.Println(opp.EndAmount)
+
 }

@@ -8,7 +8,7 @@ import (
 )
 
 type UserInput struct {
-	ExchangesPaths []string
+	Exchanges []string
 	Pairs          []string
 	StartAmount    float64
 	MinProfit      float64
@@ -18,7 +18,7 @@ func GetInputs() (*UserInput, error) {
 	reader := bufio.NewReader(os.Stdin)
 
 	// Get exchanges from user through console
-	fmt.Print("Enter exchanges (comma separated, example: binance,forex): ")
+	fmt.Print("Enter exchanges (comma separated, example: kraken,binance): ")
 	exInput, _ := reader.ReadString('\n')
 	exInput = strings.ToLower(strings.TrimSpace(exInput))
 	exFiles := strings.Split(exInput, ",")
@@ -55,7 +55,7 @@ func GetInputs() (*UserInput, error) {
 	}
 
 	return &UserInput{
-		ExchangesPaths: exFiles,
+		Exchanges: exFiles,
 		Pairs:          pairs,
 		StartAmount:    startAmount,
 		MinProfit:      minProfit,
